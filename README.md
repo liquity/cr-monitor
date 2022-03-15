@@ -27,7 +27,7 @@ The minimalistic and dependency-minimized core of Liquity CR Monitor. It is desi
 - [core/monitoring](src/core/monitoring/index.ts): Querying blockchain data and calculating collateral ratios, invoking the notification dispatcher. **Contains the entry point of the monitoring core.**
 - [core/notification](src/core/notification/index.ts): Dispatching notifications to targets. Uses storage to ensure notifications are only sent out once every time a threshold is crossed.
   - [core/notification/targets](src/core/notification/targets): Modules implementing various notification methods, e.g. Slack (currently the only implementation).
-- [core/price](src/core/price/index.ts): Ether price aggregation. Fetches Ether price from a number of sources and chooses the lowest one.
+- [core/price](src/core/price/index.ts): Ether:USD price aggregation. Fetches Ether price (quoted in USD) from a number of sources and chooses the lowest one.
   - [core/price/sources](src/core/price/sources): Modules implementing various Ether price sources (e.g. Liquity PriceFeed contract, CoinGecko API).
 
 ### Tenderly Actions example
