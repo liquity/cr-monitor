@@ -2,7 +2,7 @@ import type { ReadableLiquity } from "@liquity/lib-base";
 
 import type { Storage } from "../storage";
 import { dispatcher, NotificationTarget } from "../notification";
-import { lowestPrice, PriceSources } from "../price/aggregation";
+import { lowestPrice, PriceSources } from "../price";
 import { isClosedStatus } from "../utils";
 
 export interface MonitoredTroveParams {

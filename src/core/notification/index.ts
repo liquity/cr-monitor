@@ -1,5 +1,5 @@
 import type { Storage } from "../storage";
-import { PriceDatum, validPriceDatum } from "../price/aggregation";
+import { PriceDatum, validPriceDatum } from "../price";
 import { ClosedStatus, hasKey, isObj } from "../utils";
 
 // E.g. after notifying of a TCR drop below 180%, we won't notify again until TCR recovers to
