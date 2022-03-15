@@ -1,0 +1,12 @@
+actions:
+  liquity/cr-monitor:
+    runtime: v1
+    sources: src
+    specs:
+      periodicallyCheckPrice:
+        description: Periodically check ETH price and conditionally fire notifications
+        function: periodic:checkPrice
+        trigger:
+          type: periodic
+          periodic:
+            interval: 5m
