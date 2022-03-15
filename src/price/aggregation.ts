@@ -1,8 +1,4 @@
-import type { ReadableLiquity } from "@liquity/lib-base";
-
 import { hasKey, isObj } from "../utils";
-import coingecko from "./sources/coingecko";
-import liquity from "./sources/liquity";
 
 const hasValue = <K, V>(entry: [K, V | undefined]): entry is [K, V] => entry[1] != null;
 const compareValues = ([, a]: [unknown, number], [, b]: [unknown, number]) => a - b;
@@ -36,8 +32,3 @@ export const lowestPrice = async (sources: PriceSources, timeout?: number): Prom
 
   return { source, value };
 };
-
-export const defaultSources = (l: ReadableLiquity): PriceSources => ({
-  CoinGecko: coingecko,
-  "Liquity PriceFeed": liquity(l)
-});

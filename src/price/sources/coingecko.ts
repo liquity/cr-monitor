@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { MalformedResponseError } from "../MalformedResponseError";
+import { _MalformedResponseError } from "./_MalformedResponseError";
 import { hasKey, isObj } from "../../utils";
 
 const ethVsUsdUrl = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd";
@@ -23,7 +23,7 @@ export const fetchPrice = async (timeout?: number): Promise<number | undefined> 
     const response = await axios.get<unknown>(ethVsUsdUrl, { timeout });
 
     if (!validateResponse(response.data)) {
-      throw new MalformedResponseError("Malformed response from CoinGecko", response.data);
+      throw new _MalformedResponseError("Malformed response from CoinGecko", response.data);
     }
 
     return response.data.ethereum.usd;

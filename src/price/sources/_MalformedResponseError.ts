@@ -1,4 +1,5 @@
-export class MalformedResponseError extends Error {
+/** @internal */
+export class _MalformedResponseError extends Error {
   response;
 
   constructor(message: string, response: unknown) {

@@ -15,7 +15,7 @@ export const fetchPrice =
           : [])
       ]);
     } catch (error) {
-      console.warn("Failed to fetch price from CoinGecko");
+      console.warn("Failed to fetch price from Liquity PriceFeed");
       console.warn(error);
       return undefined;
     }

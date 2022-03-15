@@ -1,8 +1,10 @@
-import axios from "axios";
-import type { Context } from "@tenderly/actions";
-
+import type { Storage } from "../storage";
 import { PriceDatum, validPriceDatum } from "../price/aggregation";
 import { ClosedStatus, hasKey, isObj } from "../utils";
+
+// E.g. after notifying of a TCR drop below 180%, we won't notify again until TCR recovers to
+// 180% * (1 + hysteresis) = 189%; in other words until ETH recovers by 100% * hysteresis = 5%.
+const hysteresis = 0.05;
 
 export interface CrNotificationParams {
   threshold: number;
@@ -22,17 +24,17 @@ export interface TroveClosureNotificationParams {
   status: ClosedStatus;
 }
 
-const percent = (n: number) => `${Math.round(1000 * n) / 10}%`;
+export interface NotificationTarget {
+  notifyTcr(params: CrNotificationParams): Promise<void>;
+  notifyTroveCr(params: TroveCrNotificationParams): Promise<void>;
+  notifyTroveClosure(params: TroveClosureNotificationParams): Promise<void>;
+}
 
-const dollars = (n: number) =>
-  n.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-
-let webhookUrl: string | undefined;
+export interface Dispatcher {
+  tcrNotification(params: CrNotificationParams): Promise<void>;
+  troveCrNotification(params: TroveCrNotificationParams): Promise<void>;
+  troveClosureNotification(params: TroveClosureNotificationParams): Promise<void>;
+}
 
 const validCrNotification = (o: unknown): o is CrNotificationParams =>
   isObj(o) &&
@@ -43,126 +45,82 @@ const validCrNotification = (o: unknown): o is CrNotificationParams =>
   hasKey(o, "price") &&
   validPriceDatum(o.price);
 
-const postAlert = async (context: Context, title: string, messageBody: string) => {
-  webhookUrl ??= await context.secrets.get("slackWebhookUrl");
+const parseJson = (value: string): unknown => (value !== "" ? JSON.parse(value) : null);
+const getJson = (storage: Storage, key: string) => storage.get(key).then(parseJson);
+const putJson = (storage: Storage, key: string, value: unknown) =>
+  storage.put(key, JSON.stringify(value));
 
-  return axios.post(webhookUrl, {
-    text: `Liquity Alert: ${title}`,
-    blocks: [
-      {
-        type: "header",
-        text: {
-          type: "plain_text",
-          text: title
-        }
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: messageBody
-        }
-      }
-    ]
-  });
-};
-
-// E.g. after notifying of a TCR drop below 180%, we won't notify again until TCR recovers to
-// 180% * (1 + hysteresis) = 189%; in other words until ETH recovers by 100% * hysteresis = 5%.
-const hysteresis = 0.05;
-
-const notifyCr = async (
-  context: Context,
+const shouldNotifyCr = async (
+  storage: Storage,
   storageKey: string,
-  title: string,
-  messageBody: string,
   params: CrNotificationParams
 ) => {
-  const lastNotification = await context.storage.getJson(storageKey);
+  const lastNotification = await getJson(storage, storageKey);
 
   if (validCrNotification(lastNotification) && lastNotification.threshold === params.threshold) {
     if (params.current > params.threshold * (1 + hysteresis)) {
-      await context.storage.delete(storageKey);
+      await storage.delete(storageKey);
     }
-    return;
+    return false;
   }
 
   if (params.current > params.threshold) {
-    return;
+    return false;
   }
 
-  await postAlert(context, title, messageBody);
-  await context.storage.putJson(storageKey, params);
+  await putJson(storage, storageKey, params);
+  return true;
 };
 
-export const notifyTcr = (context: Context, params: CrNotificationParams) =>
-  notifyCr(
-    context,
-    "notification/tcr",
-    "TCR threshold crossed",
-    [
-      `*Current TCR*: ${percent(params.current)}`,
-      `*Threshold*: ${percent(params.threshold)}`,
-      `*Current price*: ${dollars(params.price.value)} (source: ${params.price.source})`
-    ].join("\n"),
-    params
-  );
+const shouldNotifyTcr = (storage: Storage, params: CrNotificationParams) =>
+  shouldNotifyCr(storage, "notification/tcr", params);
 
 const troveNotificationStorageKey = (address: string) =>
   `notification/trove/${address.toLowerCase()}`;
 
-export const notifyTroveCr = async (context: Context, params: TroveCrNotificationParams) => {
+const shouldNotifyTroveCr = async (storage: Storage, params: TroveCrNotificationParams) => {
   const { address, name, ...crParams } = params;
   const storageKey = troveNotificationStorageKey(address);
-  const lastNotification = await context.storage.getJson(storageKey);
+  const lastNotification = await getJson(storage, storageKey);
 
   if (lastNotification === "closed") {
-    await context.storage.delete(storageKey);
+    await storage.delete(storageKey);
   }
 
-  return notifyCr(
-    context,
-    storageKey,
-    `Trove CR threshold crossed (${name})`,
-    [
-      `*Name*: ${name}`,
-      `*Address*: <https://etherscan.io/address/${address}|${address}>`,
-      `*Current CR*: ${percent(params.current)}`,
-      `*Threshold*: ${percent(params.threshold)}`,
-      `*Current price*: ${dollars(params.price.value)} (source: ${params.price.source})`
-    ].join("\n"),
-    crParams
-  );
+  return shouldNotifyCr(storage, storageKey, crParams);
 };
 
-const lookupClosure = (status: ClosedStatus) =>
-  status === "closedByLiquidation"
-    ? "liquidation"
-    : status === "closedByRedemption"
-    ? "redemption"
-    : "owner";
-
-export const notifyTroveClosure = async (
-  context: Context,
+const shouldNotifyTroveClosure = async (
+  storage: Storage,
   params: TroveClosureNotificationParams
 ) => {
   const storageKey = troveNotificationStorageKey(params.address);
-  const lastNotification = await context.storage.getJson(storageKey);
+  const lastNotification = await getJson(storage, storageKey);
 
   if (lastNotification === "closed") {
-    return;
+    return false;
   }
 
-  await postAlert(
-    context,
-    `Trove closed (${params.name})`,
-    [
-      `*Name*: ${params.name}`,
-      `*Address*: <https://etherscan.io/address/${params.address}|${params.address}>`,
-      `*Closed by*: ${lookupClosure(params.status)}`,
-      `*Current price*: ${dollars(params.price.value)} (source: ${params.price.source})`
-    ].join("\n")
-  );
-
-  await context.storage.putJson(storageKey, "closed");
+  await putJson(storage, storageKey, "closed");
+  return true;
 };
+
+export const dispatcher = (storage: Storage, targets: NotificationTarget[]): Dispatcher => ({
+  async tcrNotification(params) {
+    if (await shouldNotifyTcr(storage, params)) {
+      await Promise.all(targets.map(target => target.notifyTcr(params)));
+    }
+  },
+
+  async troveCrNotification(params) {
+    if (await shouldNotifyTroveCr(storage, params)) {
+      await Promise.all(targets.map(target => target.notifyTroveCr(params)));
+    }
+  },
+
+  async troveClosureNotification(params) {
+    if (await shouldNotifyTroveClosure(storage, params)) {
+      await Promise.all(targets.map(target => target.notifyTroveClosure(params)));
+    }
+  }
+});
