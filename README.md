@@ -1,8 +1,17 @@
-# Liquity CR Monitor 🚨
+# Liquity CR Monitor 🚨 <!-- omit in toc -->
 
 This project is a simple implementation of a CR ([collateral ratio](https://docs.liquity.org/faq/borrowing#what-is-the-collateral-ratio)) monitor for Liquity Protocol using the [Liquity SDK](https://docs.liquity.org/documentation/sdk).
 
 It lets you receive push-notifications whenever the TCR (total collateral ratio) of the Liquity system, or the individual CR of any Trove in a selected list falls below a configurable threshold.
+
+## Table of contents <!-- omit in toc -->
+
+- [Components](#components)
+  - [Core](#core)
+    - [Modules](#modules)
+  - [Tenderly Actions example](#tenderly-actions-example)
+    - [Sources](#sources)
+    - [Deployment](#deployment)
 
 ## Components
 
