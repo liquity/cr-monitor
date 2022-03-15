@@ -1,11 +1,12 @@
 actions:
+  # You should replace "liquity" with your own Tenderly username
   liquity/cr-monitor:
     runtime: v1
     sources: src
     specs:
       periodicallyCheckPrice:
         description: Periodically check ETH price and conditionally fire notifications
-        function: periodic:checkPrice
+        function: tenderlyFunctions:checkPrice
         trigger:
           type: periodic
           periodic:

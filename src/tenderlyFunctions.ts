@@ -1,13 +1,14 @@
 import type { Context } from "@tenderly/actions";
 
-import { connectToLiquity } from "./connection";
-import { checkPriceAndDispatchNotifications } from "./monitoring";
-import { getSecrets } from "./tenderlySecrets";
-import { tenderlyStorage } from "./tenderlyStorage";
+import { connectToLiquity } from "./core/connection";
+import { checkPriceAndDispatchNotifications } from "./core/monitoring";
 
-import coingeckoPrice from "./price/sources/coingecko";
-import liquityPrice from "./price/sources/liquity";
-import slackNotification from "./notification/targets/slack";
+import coingeckoPrice from "./core/price/sources/coingecko";
+import liquityPrice from "./core/price/sources/liquity";
+import slackNotification from "./core/notification/targets/slack";
+
+import { getSecrets } from "./tenderly/secrets";
+import { tenderlyStorage } from "./tenderly/storage";
 
 const secretKeys = ["ethereumRpcUrl" as const, "slackWebhookUrl" as const];
 

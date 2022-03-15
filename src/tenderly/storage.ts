@@ -1,6 +1,6 @@
 import type { Storage as TenderlyStorage } from "@tenderly/actions";
 
-import type { Storage } from "./storage";
+import type { Storage } from "../core/storage";
 
 export const tenderlyStorage = (storage: TenderlyStorage): Storage => ({
   get(key) {
