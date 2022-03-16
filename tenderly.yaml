@@ -1,5 +1,5 @@
 actions:
-  # You should replace "liquity" with your own Tenderly username
+  # You should replace "liquity/cr-monitor" with your own Tenderly username and project
   liquity/cr-monitor:
     runtime: v1
     sources: src
